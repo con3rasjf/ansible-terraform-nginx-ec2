@@ -1,0 +1,25 @@
+---
+- name: Configurar servidor Nginx y desplegar web app
+  hosts: web # Los hosts que se van a configurar
+  become: true # Para ejecutar comandos como root
+
+  tasks:
+    - name: Asegurar que Nginx esté instalado
+      apt: #Modulo de Ansible para instalar paquetes en sistemas operativos basados en Debian/Ubuntu
+        name: nginx # Especifica la versión de Nginx
+        state: present #Verificar si el paquete esté instalado, si no lo esté, lo instala
+        update_cache: yes #Ejecuta apt update antes de instalar el paquete
+
+    - name: Asegurarse de que Nginx esté iniciado
+      service: #Modulo para controlar servicios en sistemas operativos
+        name: nginx 
+        state: started #Asegura que el servicio Nginx esté iniciado
+        enabled: true #Hace que el servicio Nginx se inicie al arrancar el servidor
+
+    - name: Copiar la app web (versión inicial)
+      copy: #Modulo para copiar archivos y directorios
+        src: files/app/v1/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0644' #Permisos del archivo

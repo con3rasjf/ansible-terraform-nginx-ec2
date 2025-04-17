@@ -1,0 +1,13 @@
+---
+- name: Desplegar nueva versión de la aplicación web
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Copiar la nueva versión de la app web
+      copy:
+        src: files/app/v2/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0644'

@@ -1,0 +1,57 @@
+---
+- name: Validar y actualizar Nginx si es necesario (Ubuntu)
+  hosts: web
+  become: true
+  gather_facts: no  # No se recopilan facts automáticamente (opcional en este caso)
+
+  tasks:
+    # 1️⃣ Obtener la versión actual de nginx instalada en el sistema
+    - name: Obtener versión actual de Nginx
+      command: nginx -v  # Este comando imprime la versión actual a stderr
+      register: nginx_version_output  # Guardamos la salida en una variable
+      failed_when: false              # Evita que la tarea falle si nginx no está instalado
+      changed_when: false             # Evita que se marque como "changed" si no hace cambios
+
+    # 2️⃣ Mostrar en consola la versión instalada (viene en stderr)
+    - name: Mostrar versión actual
+      debug: #Este modulo muestra mensajes en la consola
+        msg: "{{ nginx_version_output.stderr }}"  # Mostramos la salida como mensaje
+
+    # 3️⃣ Obtener la política de versiones de nginx desde los repositorios de APT
+    - name: Obtener información de versión disponible desde apt
+      shell: apt-cache policy nginx  # Muestra información como "Installed" y "Candidate"
+      register: nginx_policy         # Guardamos la salida
+      changed_when: false            # No marca cambios, es solo lectura
+
+    # 4️⃣ Extraer la versión instalada desde la salida del comando `nginx -v`
+    - name: Extraer versión instalada
+      set_fact: # Este modulo nos permite definir variables
+        current_version: "{{ nginx_version_output.stderr | regex_search('nginx/([0-9.]+)', '\\1') }}"
+        # Usamos regex para quedarnos solo con "1.24.0", por ejemplo
+
+    # 5️⃣ Extraer la versión candidata (última disponible) desde `apt-cache policy`
+    - name: Extraer versión candidata (última disponible)
+      set_fact:
+        latest_version: "{{ nginx_policy.stdout | regex_search('Candidate:\\s+([0-9.]+)', '\\1') }}"
+        # Usamos regex para capturar solo la versión disponible para instalar
+
+    # 6️⃣ Mostrar ambas versiones para ver comparación
+    - name: Mostrar comparación de versiones
+      debug:
+        msg: "Versión instalada: {{ current_version }} | Última disponible: {{ latest_version }}"
+
+    # 7️⃣ Actualizar nginx solo si la versión instalada es más antigua que la disponible
+    - name: Actualizar nginx si la versión es más antigua
+      apt:
+        name: nginx              # Especificamos el paquete
+        state: latest            # Lo actualizamos a la versión más reciente disponible
+        update_cache: yes        # Ejecuta `apt update` antes de instalar
+      when: current_version is version(latest_version, '<')
+      # Solo ejecuta esta tarea si la versión instalada < última disponible
+
+    # 8️⃣ Reiniciar el servicio de nginx si se actualizó
+    - name: Reiniciar nginx si fue actualizado
+      service:
+        name: nginx
+        state: restarted  # Reinicia el servicio para aplicar la nueva versión
+      when: current_version is version(latest_version, '<')
