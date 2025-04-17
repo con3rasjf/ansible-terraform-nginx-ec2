@@ -138,7 +138,7 @@ terraform destroy -auto-approve
 **Juan Felipe Contreras Correa**  
 DevOps Engineer | Automatización, CI/CD, Cloud & Infraestructura como Código
 
-[LinkedIn](https://www.linkedin.com/in/tuusuario)
+[LinkedIn](https://www.linkedin.com/in/felipe-contreras-36834313a/)
 
 ---
 
